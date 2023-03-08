@@ -9,6 +9,7 @@ class ChatClientBridge:
         self._queue = queue.Queue()
         self._openai = openai
         self._ended = False
+        self._prompt = ""
         self.cadence = cadence
         openai.api_key = config("OPENAI_KEY")
 
@@ -23,7 +24,9 @@ class ChatClientBridge:
         text = ""
         for content in stream:
             text.join(content)
-        chat_response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": text}])
+        ## Create message structure here (prompt + message)
+        message = self._prompt + text
+        chat_response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
         self.on_response(chat_response.choices[0].message.content)
     
     def terminate(self):
@@ -31,6 +34,9 @@ class ChatClientBridge:
     
     def add_request(self, chars):
         self._queue.put(chars, block=False)
+
+    def add_prompt(self, text):
+        self._prompt = text
     
     def generator(self):
         while not self._ended:

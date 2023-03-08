@@ -17,11 +17,15 @@ HTTP_SERVER_PORT = 5000
 @sockets.route('/media')
 def transcribe(ws):
 
-    def on_transcription_response(conn, data):
+    def on_transcription_response(data):
         chatClientBridge.add_request(data)
 
-    def on_chat_response(conn, data):
-        ws.send(data)
+    def on_chat_response(data):
+        resObject = {
+            "text": data 
+        }
+        res = json.dumps(resObject)
+        ws.send()
 
     print("WS connection opened")
     chatClientBridge = ChatClientBridge(5, on_chat_response)
@@ -40,8 +44,9 @@ def transcribe(ws):
             break
 
         data = json.loads(message)
-        if data["event"] in ("connected", "start"):
+        if data["event"] == "prompt":
             print(f"Media WS: Received event '{data['event']}': {message}")
+            chatClientBridge.add_prompt(data["prompt"])
             continue
         if data["event"] == "media":
             media = data["media"]
