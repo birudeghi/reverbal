@@ -14,24 +14,23 @@ sockets = Sockets(app)
 
 HTTP_SERVER_PORT = 5000
 
-def on_transcription_response(data):
-    chatClientBridge.add_request(data)
-
-def on_chat_response():
-    
-
-chatClientBridge = ChatClientBridge(5, on_chat_response)
-whisperBridge = WhisperClientBridge(2, on_transcription_response)
-
-t_whisper = threading.Thread(target=whisperBridge.scheduled_start)
-t_chat = threading.Thread(target=chatClientBridge.scheduled_start)
-t_whisper.start()
-t_chat.start()
-
 @sockets.route('/media')
 def transcribe(ws):
+
+    def on_transcription_response(conn, data):
+        chatClientBridge.add_request(data)
+
+    def on_chat_response(conn, data):
+        ws.send(data)
+
     print("WS connection opened")
-    
+    chatClientBridge = ChatClientBridge(5, on_chat_response)
+    whisperBridge = WhisperClientBridge(2, on_transcription_response)
+
+    t_whisper = threading.Thread(target=whisperBridge.scheduled_start)
+    t_chat = threading.Thread(target=chatClientBridge.scheduled_start)
+    t_whisper.start()
+    t_chat.start()
 
     while not ws.closed:
         message = ws.receive()

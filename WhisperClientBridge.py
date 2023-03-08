@@ -29,7 +29,7 @@ class WhisperClientBridge:
             f.buffer_write(bytes, 'float64')
         f = open("whisper.wav", "rb")
         whisper_transcript = openai.Audio.transcribe(model="whisper", file=f)
-        self.on_response(whisper_transcript.text) ## link them to another generator
+        self.on_response(self.conn, whisper_transcript.text) ## link them to another generator
 
     def terminate(self):
         self._ended = True
