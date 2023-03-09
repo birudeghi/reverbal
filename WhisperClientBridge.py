@@ -19,7 +19,7 @@ class WhisperClientBridge:
     #     my_scheduler.enter(self.cadence, 1, self.start, (my_scheduler,))
     #     my_scheduler.run()
 
-    def start(self, scheduler):
+    def start(self):
         # scheduler.enter(self.cadence, 1, self.start, (scheduler,))
         stream = self.generator()
         bytes = b""

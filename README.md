@@ -4,5 +4,5 @@ ContinuousGPT generates insights into your conversation as it happens, helping y
 
 # Run
 ```
-flask --app app run
+gunicorn -k flask_sockets.worker app:app 
 ```
