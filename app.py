@@ -4,13 +4,13 @@ import logging
 import threading
 
 from flask import Flask
-from flask_sockets import Sockets
+from flask_sock import Sock
 
 from ChatClientBridge import ChatClientBridge
 from WhisperClientBridge import WhisperClientBridge
 
 app = Flask(__name__)
-sockets = Sockets(app)
+sockets = Sock(app)
 
 HTTP_SERVER_PORT = 5000
 
@@ -18,7 +18,7 @@ HTTP_SERVER_PORT = 5000
 def transcribe(ws):
 
     def on_transcription_response(data):
-        chatClientBridge.add_request(data)
+        chatBridge.add_request(data)
 
     def on_chat_response(data):
         resObject = {
@@ -28,25 +28,28 @@ def transcribe(ws):
         ws.send()
 
     print("WS connection opened")
-    chatClientBridge = ChatClientBridge(5, on_chat_response)
+    chatBridge = ChatClientBridge(5, on_chat_response)
     whisperBridge = WhisperClientBridge(2, on_transcription_response)
-
-    t_whisper = threading.Thread(target=whisperBridge.scheduled_start)
-    t_chat = threading.Thread(target=chatClientBridge.scheduled_start)
+    print("Bridges instantiated")
+    t_whisper = threading.Thread(target=whisperBridge.start)
+    t_chat = threading.Thread(target=chatBridge.start)
     t_whisper.start()
     t_chat.start()
+    print("Bridges started")
 
-    while not ws.closed:
+    while True:
         message = ws.receive()
+        print("Message received")
         if message is None:
             whisperBridge.add_request(None)
             whisperBridge.terminate()
+            chatBridge.terminate()
             break
 
         data = json.loads(message)
         if data["event"] == "prompt":
             print(f"Media WS: Received event '{data['event']}': {message}")
-            chatClientBridge.add_prompt(data["prompt"])
+            chatBridge.add_prompt(data["prompt"])
             continue
         if data["event"] == "media":
             media = data["media"]
@@ -57,11 +60,13 @@ def transcribe(ws):
             print("Stopping...")
             break
 
-    whisperBridge.terminate() # it terminates, and then sends the audio as this is when the generator stops
+    whisperBridge.terminate()
+    chatBridge.terminate() # it terminates, and then sends the audio as this is when the generator stops
     print("WS connection closed")
 
 
 if __name__ == '__main__':
+
     app.logger.setLevel(logging.DEBUG)
     from gevent import pywsgi
     from geventwebsocket.handler import WebSocketHandler

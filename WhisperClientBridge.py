@@ -14,13 +14,13 @@ class WhisperClientBridge:
         self.cadence = cadence
         openai.api_key = config("OPENAI_KEY")
     
-    def scheduled_start(self):
-        my_scheduler = sched.scheduler(time.time, time.sleep)
-        my_scheduler.enter(self.cadence, 1, self.start, (my_scheduler,))
-        my_scheduler.run()
+    # def scheduled_start(self):
+    #     my_scheduler = sched.scheduler(time.time, time.sleep)
+    #     my_scheduler.enter(self.cadence, 1, self.start, (my_scheduler,))
+    #     my_scheduler.run()
 
     def start(self, scheduler):
-        scheduler.enter(self.cadence, 1, self.start, (scheduler,))
+        # scheduler.enter(self.cadence, 1, self.start, (scheduler,))
         stream = self.generator()
         bytes = b""
         for content in stream:
