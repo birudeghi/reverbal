@@ -22,11 +22,12 @@ class WhisperClientBridge:
     def start(self):
         # scheduler.enter(self.cadence, 1, self.start, (scheduler,))
         stream = self.generator()
-        bytes = b""
+        bytes = b''
         for content in stream:
             bytes.join(content)
         with sf.SoundFile("whisper.wav", "w", 14400, 1) as f:
             f.buffer_write(bytes, 'float64')
+        print("Audio file created")
         f = open("whisper.wav", "rb")
         whisper_transcript = openai.Audio.transcribe(model="whisper", file=f)
         self.on_response(self.conn, whisper_transcript.text) ## link them to another generator
@@ -57,4 +58,4 @@ class WhisperClientBridge:
                 except queue.Empty:
                     break
 
-            yield b"".join(data)
+            yield b''.join(data)

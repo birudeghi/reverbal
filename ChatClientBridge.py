@@ -26,6 +26,7 @@ class ChatClientBridge:
             text.join(content)
         ## Create message structure here (prompt + message)
         message = self._prompt + text
+        print("chatGPT message: " + message)
         chat_response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
         self.on_response(chat_response.choices[0].message.content)
     
