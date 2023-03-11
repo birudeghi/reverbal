@@ -1,7 +1,5 @@
 import base64
 import json
-import threading
-import time
 import asyncio
 import websockets
 
@@ -26,11 +24,7 @@ async def transcribe(ws):
 
     print("WS connection opened")
     chatBridge = create_chat_response(on_chat_response)
-
-    print('whisperBridge started')
     async for message in ws:
-
-        print("Message received")
         if message is None:
             chatBridge.add_input(None)
             chatBridge.terminate()
@@ -44,13 +38,16 @@ async def transcribe(ws):
         if data["event"] == "media":
             chunk = base64.b64decode(data["media"])
             chatBridge.add_input(chunk)
+
+        if data["event"] == "break":
+            await chatBridge.send()
         if data["event"] == "stop":
             print(f"Media WS: Received event 'stop': {message}")
             print("Stopping...")
             break
 
     
-    await chatBridge.send() # it terminates, and then sends the audio as this is when the generator stops
+    await chatBridge.send()
     print("WS connection closed")
 
 async def main():

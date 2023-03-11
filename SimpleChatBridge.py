@@ -17,14 +17,13 @@ class SimpleChatBridge:
         self._prompt = prompt
 
     def add_input(self, buffer):
-        print("Add input")
+        print("Added input")
         self._queue.put(bytes(buffer), block=False)
 
     async def send(self):
         stream = self.audio_generator()
         bytes = b''
         for content in stream:
-            print("generator working: ", content)
             bytes += content
         with sf.SoundFile("whisper.wav", "w", 14400, 1) as f:
             f.buffer_write(bytes, 'float64')
