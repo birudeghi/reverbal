@@ -1,17 +1,15 @@
 import queue
-import sched, time
 import soundfile as sf
 from decouple import config
 import openai
 
 
 class WhisperClientBridge:
-    def __init__(self, cadence, on_response):
+    def __init__(self, on_response):
         self.on_response = on_response
         self._queue = queue.Queue()
         self._openai = openai
         self._ended = False
-        self.cadence = cadence
         openai.api_key = config("OPENAI_KEY")
     
     # def scheduled_start(self):
@@ -31,7 +29,7 @@ class WhisperClientBridge:
         print("Audio file created")
         f = open("whisper.wav", "rb")
         whisper_transcript = openai.Audio.transcribe(model="whisper", file=f)
-        self.on_response(self.conn, whisper_transcript.text) ## link them to another generator
+        self.on_response(whisper_transcript.text) ## link them to another generator
 
     def terminate(self):
         self._ended = True

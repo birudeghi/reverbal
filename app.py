@@ -1,7 +1,7 @@
 import base64
 import json
 import threading
-
+import time
 import asyncio
 import websockets
 
@@ -10,30 +10,29 @@ from WhisperClientBridge import WhisperClientBridge
 
 HTTP_SERVER_PORT = 8000
 
+def create_chat_response(on_response):
+    bridge = SimpleChatBridge()
+    bridge._init(on_response)
+    return bridge
+
 async def transcribe(ws):
-    def on_transcription_response(data):
-        chatBridge.add_request(data)
 
     async def on_chat_response(data):
         resObject = {
             "text": data 
         }
         res = json.dumps(resObject)
-        await ws.send()
+        await ws.send(res)
 
     print("WS connection opened")
-    chatBridge = SimpleChatBridge(5, await on_chat_response)
-    whisperBridge = WhisperClientBridge(2, on_transcription_response)
+    chatBridge = create_chat_response(on_chat_response)
 
-    t_whisper = threading.Thread(target=whisperBridge.start)
-    t_whisper.start()
     print('whisperBridge started')
     async for message in ws:
 
         print("Message received")
         if message is None:
-            whisperBridge.add_request(None)
-            whisperBridge.terminate()
+            chatBridge.add_input(None)
             chatBridge.terminate()
 
         data = json.loads(message)
@@ -44,18 +43,19 @@ async def transcribe(ws):
 
         if data["event"] == "media":
             chunk = base64.b64decode(data["media"])
-            whisperBridge.add_request(chunk)
+            chatBridge.add_input(chunk)
         if data["event"] == "stop":
             print(f"Media WS: Received event 'stop': {message}")
             print("Stopping...")
             break
 
-    whisperBridge.terminate()
-    chatBridge.terminate() # it terminates, and then sends the audio as this is when the generator stops
+    
+    await chatBridge.send() # it terminates, and then sends the audio as this is when the generator stops
     print("WS connection closed")
 
 async def main():
     async with websockets.serve(transcribe, "localhost", HTTP_SERVER_PORT):
+        print("server listening on: http://localhost:" + str(HTTP_SERVER_PORT))
         await asyncio.Future()
 
 if __name__ == '__main__':
