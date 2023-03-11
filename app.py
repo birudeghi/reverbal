@@ -4,7 +4,6 @@ import asyncio
 import websockets
 
 from SimpleChatBridge import SimpleChatBridge
-from WhisperClientBridge import WhisperClientBridge
 
 HTTP_SERVER_PORT = 8000
 
