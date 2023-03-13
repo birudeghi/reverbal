@@ -2,7 +2,7 @@
 
 ContinuousGPT generates insights for your verbal conversation as it happens, helping you close that important sales call or discussing travel plans with your friend.
 
-This server utilises Whisper and ChatGPT APIs to transcribe your audio and generates insights respsctively. You can adjust how ChatGPT generates insights by sending a prompt prior to starting the audio stream from your client.
+This server utilises Whisper and ChatGPT APIs to transcribe your audio and generate insights respsctively. You can adjust how ChatGPT generates insights by sending a prompt prior to starting the audio stream from your client.
 
 # Run
 
