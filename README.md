@@ -23,12 +23,12 @@ docker-compose up -d
 
 This server works on a simple WebSocket connection that accepts different types of events.
 
-## To continuousAI
+## To continuousGPT
 
 WebSockets `ws://localhost:80/`
 
 ### **********`prompt`********** event
-Sets a prompt to be sent together with your transcribed text
+Sets a prompt to be sent together with your transcribed text.
 
 ```json
 { 
@@ -67,7 +67,7 @@ Aggregates collected audio streams to be transcribed and then closes the connect
 }
 ```
 
-## From continuousAI
+## From continuousGPT
 
 WebSockets `ws://localhost:80/`
 
@@ -79,7 +79,7 @@ WebSockets `ws://localhost:80/`
 
 # Debug
 
-To debug, create an .env file in root for your OpenAI token run
+To debug, create an .env file in root for your OpenAI token and run
 ```
 python app.py
 ```
