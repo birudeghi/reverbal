@@ -1,5 +1,7 @@
+import os
 import openai
 import queue
+import wave
 import soundfile as sf
 from decouple import config
 
@@ -10,8 +12,9 @@ class SimpleChatBridge:
         self._prompt = ""
         openai.api_key = config("OPENAI_KEY")
     
-    def _init(self, on_response):
+    def _init(self, on_response, on_error_response):
         self.on_response = on_response
+        self.on_error_response = on_error_response
 
     def add_prompt(self, prompt):
         self._prompt = prompt
@@ -25,11 +28,24 @@ class SimpleChatBridge:
         bytes = b''
         for content in stream:
             bytes += content
+
+        os.remove("whisper.wav")
+
         with sf.SoundFile("whisper.wav", "w", 44100, 1) as f:
             f.buffer_write(bytes, 'float64')
         print("Audio file created")
-        f = open("whisper.wav", "rb")
-        whisper_transcript = openai.Audio.transcribe(model="whisper-1", file=f)
+
+        with wave.open("whisper.wav", "rb") as f:
+            frames = f.getnframes()
+            rate = f.getframerate()
+            duration = frames / float(rate)
+
+            if duration < 0.1:
+                await self.on_error_response("Conversation duration too short.")
+                return
+            
+        file = open("whisper.wav", "rb")
+        whisper_transcript = openai.Audio.transcribe(model="whisper-1", file=file)
         message = self._prompt + whisper_transcript.text
         print("chatGPT message: " + message)
         chat_response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
