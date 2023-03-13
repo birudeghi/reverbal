@@ -4,3 +4,4 @@ pyvenv.cfg
 bin
 include
 lib
+whisper.wav

@@ -4,5 +4,5 @@ ContinuousGPT generates insights into your conversation as it happens, helping y
 
 # Run
 ```
-gunicorn -b :8000 --worker-class gevent app:app
+python app.py
 ```
