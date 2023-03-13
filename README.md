@@ -79,7 +79,7 @@ WebSockets `ws://localhost:80/`
 
 # Debug
 
-To debug, create an .env file in root for your OpenAI token and run
+To debug, create an .env file in root for your OpenAI token and run:
 ```
 python app.py
 ```
