@@ -5,7 +5,7 @@ import websockets
 
 from SimpleChatBridge import SimpleChatBridge
 
-HTTP_SERVER_PORT = 8000
+HTTP_SERVER_PORT = 8080
 
 def create_chat_response(on_response):
     bridge = SimpleChatBridge()
@@ -50,7 +50,7 @@ async def transcribe(ws):
     print("WS connection closed")
 
 async def main():
-    async with websockets.serve(transcribe, "localhost", HTTP_SERVER_PORT):
+    async with websockets.serve(transcribe, None, HTTP_SERVER_PORT):
         print("server listening on: http://localhost:" + str(HTTP_SERVER_PORT))
         await asyncio.Future()
 

@@ -1,0 +1,9 @@
+services:
+  continuousgpt:
+    image: birudeghi/continuousgpt:beta
+    restart: always
+    environment:
+      - OPENAI_KEY=<api_key>
+    ports:
+      - 443:8080
+      - 80:8080

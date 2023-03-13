@@ -25,7 +25,7 @@ class SimpleChatBridge:
         bytes = b''
         for content in stream:
             bytes += content
-        with sf.SoundFile("whisper.wav", "w", 14400, 1) as f:
+        with sf.SoundFile("whisper.wav", "w", 44100, 1) as f:
             f.buffer_write(bytes, 'float64')
         print("Audio file created")
         f = open("whisper.wav", "rb")
