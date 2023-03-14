@@ -52,10 +52,12 @@ async def transcribe(ws):
 
         if data["event"] == "media":
             chunk = base64.b64decode(data["media"])
+            print(chunk[0:10])
             chatBridge.add_input(chunk)
 
         if data["event"] == "break":
             await chatBridge.send()
+
         if data["event"] == "stop":
             print(f"Media WS: Received event 'stop': {message}")
             await chatBridge.send()
