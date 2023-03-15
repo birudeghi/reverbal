@@ -2,7 +2,6 @@ import base64
 import json
 import asyncio
 import websockets
-
 from SimpleChatBridge import SimpleChatBridge
 
 HTTP_SERVER_PORT = 8080
@@ -43,7 +42,7 @@ async def transcribe(ws):
             }
             msg = json.dumps(error_msg)
             await ws.send(msg)
-            break
+            continue
 
         if data["event"] == "prompt":
             print(f"Media WS: Received event '{data['event']}': {message}")
@@ -52,10 +51,12 @@ async def transcribe(ws):
 
         if data["event"] == "media":
             chunk = base64.b64decode(data["media"])
+            print(chunk[0:10])
             chatBridge.add_input(chunk)
 
         if data["event"] == "break":
             await chatBridge.send()
+
         if data["event"] == "stop":
             print(f"Media WS: Received event 'stop': {message}")
             await chatBridge.send()

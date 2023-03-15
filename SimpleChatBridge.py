@@ -1,8 +1,7 @@
-import os
 import openai
 import queue
-import wave
-import soundfile as sf
+from aiohttp import ClientSession
+from pydub import AudioSegment
 from decouple import config
 
 class SimpleChatBridge:
@@ -10,6 +9,7 @@ class SimpleChatBridge:
         self._queue = queue.Queue()
         self._ended = False
         self._prompt = ""
+        self._key = config("OPENAI_KEY")
         openai.api_key = config("OPENAI_KEY")
     
     def _init(self, on_response, on_error_response):
@@ -20,36 +20,41 @@ class SimpleChatBridge:
         self._prompt = prompt
 
     def add_input(self, buffer):
-        print("Added input")
         self._queue.put(bytes(buffer), block=False)
+
+    def clear(self):
+        with self._queue.mutex:
+            self._queue.queue.clear()
 
     async def send(self):
         stream = self.audio_generator()
-        bytes = b''
+        segment = AudioSegment.empty()
+        if stream is None:
+            print("empty stream")
+            return
+        
         for content in stream:
-            bytes += content
+            new_seg = AudioSegment(content, sample_width=2, frame_rate=96000, channels=1)
+            segment += new_seg
 
-        os.remove("whisper.wav")
-
-        with sf.SoundFile("whisper.wav", "w", 44100, 1) as f:
-            f.buffer_write(bytes, 'float64')
+        segment.export("whisper.wav", format="wav")
         print("Audio file created")
 
-        with wave.open("whisper.wav", "rb") as f:
-            frames = f.getnframes()
-            rate = f.getframerate()
-            duration = frames / float(rate)
-
-            if duration < 0.1:
-                await self.on_error_response("Conversation duration too short.")
-                return
-            
-        file = open("whisper.wav", "rb")
-        whisper_transcript = openai.Audio.transcribe(model="whisper-1", file=file)
+        file = open("whisper.wav", "r+b")
+        openai.aiosession.set(ClientSession())
+        try:
+            whisper_transcript = await openai.Audio.atranscribe(model="whisper-1", file=file, language="en")
+        except openai.InvalidRequestError:
+            await self.on_error_response("There's a problem processing the audio.")
+            return
         message = self._prompt + whisper_transcript.text
         print("chatGPT message: " + message)
-        chat_response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
+        chat_response = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
+        await openai.aiosession.get().close()
         await self.on_response(chat_response.choices[0].message.content)
+        print("message sent")
+
+    
     
     def audio_generator(self):
         # Use a blocking get() to ensure there's at least one chunk of
