@@ -1,9 +1,7 @@
-import os
 import openai
 import queue
 from aiohttp import ClientSession
-import requests
-import soundfile as sf
+from pydub import AudioSegment
 from decouple import config
 
 class SimpleChatBridge:
@@ -30,25 +28,25 @@ class SimpleChatBridge:
 
     async def send(self):
         stream = self.audio_generator()
-        bytes = b''
+        segment = AudioSegment.empty()
         if stream is None:
             print("empty stream")
             return
+        
         for content in stream:
-            bytes += content
+            new_seg = AudioSegment(content, sample_width=2, frame_rate=96000, channels=1)
+            segment += new_seg
 
-        with open("whisper.webm", "w+b") as f:
-            print("bytes to write: ", bytes[:50])
-            f.write(bytes)
-            print("Audio file created")
+        segment.export("whisper.wav", format="wav")
+        print("Audio file created")
 
-        file = open("whisper.webm", "r+b")
+        file = open("whisper.wav", "r+b")
         openai.aiosession.set(ClientSession())
-        # try:
-        whisper_transcript = await openai.Audio.atranscribe(model="whisper-1", file=file, language="en")
-        # except openai.InvalidRequestError:
-        #     await self.on_error_response("There's a problem processing the audio.")
-        #     return
+        try:
+            whisper_transcript = await openai.Audio.atranscribe(model="whisper-1", file=file, language="en")
+        except openai.InvalidRequestError:
+            await self.on_error_response("There's a problem processing the audio.")
+            return
         message = self._prompt + whisper_transcript.text
         print("chatGPT message: " + message)
         chat_response = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
