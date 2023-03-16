@@ -68,10 +68,16 @@ Aggregates collected audio streams to be transcribed and then closes the connect
 ## From Server
 
 WebSockets `ws://localhost:80/`
-### Healthy response
+### Stream response
 ```json
 {
-  "text": "This is the nature of..."
+  "text": "This is the nature of...",
+  "stream": "streaming"
+}
+------
+{
+  "text": "",
+  "stream": "done"
 }
 ```
 ### Error response
