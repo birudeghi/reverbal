@@ -10,6 +10,11 @@ HTTP_SERVER_PORT = 8080
 def create_chat_response(on_response, on_error_response, uuid):
     bridge = SimpleChatBridge(uuid)
     bridge._init(on_response, on_error_response)
+
+    if not isinstance(bridge.get_key(), str):
+        print("OpenAI api key unknown.")
+        raise
+
     return bridge
 
 async def transcribe(ws):
