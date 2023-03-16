@@ -13,8 +13,6 @@ class SimpleChatBridge:
         self.uuid = uuid
         self._filename = "whisper_" + str(self.uuid) + ".wav"
         self._prompt = ""
-        self._whisper_url = "https://api.openai.com/v1/audio/transcriptions"
-        self._chat_url = "https://api.openai.com/v1/chat/completions"
         self._key = config("OPENAI_KEY")
         openai.api_key = config("OPENAI_KEY")
     
@@ -35,20 +33,6 @@ class SimpleChatBridge:
         if os.path.exists(self._filename):
             os.remove(self._filename)
 
-    async def handle_err(self, code: int):
-        match code:
-            case 200:
-                return False
-            case 429:
-                await self.on_error_response("We are reaching the limit of how much requests we are able to provide. Please bear with us or try again later.")
-                return True
-            case 400:
-                await self.on_error_response("Receiving bad request.")
-                return True
-            case 500:
-                await self.on_error_response("We are encountering issues with our network. Please bear with us or contact us.")
-                return True
-
     async def send(self):
         stream = self.audio_generator()
         segment = AudioSegment.empty()
@@ -67,14 +51,18 @@ class SimpleChatBridge:
         openai.aiosession.set(aiohttp.ClientSession())
         
         whisper_transcript = await self.audio_transcribe(model="whisper-1", file=file)
+        
         if whisper_transcript is None:
+            await openai.aiosession.get().close()
             return
         
         message = self._prompt + whisper_transcript.text
         print("chatGPT message: " + message)
 
         chat_response = await self.chat_completion(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
+        
         if chat_response is None:
+            await openai.aiosession.get().close()
             return
         
         await openai.aiosession.get().close()
@@ -86,19 +74,23 @@ class SimpleChatBridge:
         try:
             whisper_transcript = await openai.Audio.atranscribe(**kwargs)
             return whisper_transcript
+        
         except openai.error.InvalidRequestError as e:
             print(f"There's a problem processing the audio: {e}")
             await self.on_error_response(f"There's a problem processing the audio: {e}")
             pass
+
         except openai.error.RateLimitError as e:
             print(f"{e}")
-            await self.on_error_response("We are reaching the limit of how much requests we are able to provide. Please bear with us or try again later.")
+            await self.on_error_response("We are reaching the limit of the number of requests we can serve. Please bear with us or try again later.")
             pass
+
         except openai.error.APIError as e:
             #Handle API error here, e.g. retry or log
             print(f"OpenAI API returned an API Error: {e}")
             await self.on_error_response(f"OpenAI API returned an API Error: {e}")
             pass
+
         except openai.error.APIConnectionError as e:
             #Handle connection error here
             print(f"Failed to connect to OpenAI API: {e}")
@@ -110,19 +102,23 @@ class SimpleChatBridge:
         try:
             chat = await openai.ChatCompletion.acreate(**kwargs)
             return chat
+        
         except openai.error.InvalidRequestError as e:
             print(f"There's a problem processing the audio: {e}")
             await self.on_error_response(f"There's a problem processing the audio: {e}")
             pass
+
         except openai.error.RateLimitError as e:
             print(f"{e}")
-            await self.on_error_response("We are reaching the limit of how much requests we are able to provide. Please bear with us or try again later.")
+            await self.on_error_response("We are reaching the limit of the number of requests we can serve. Please bear with us or try again later.")
             pass
+
         except openai.error.APIError as e:
             #Handle API error here, e.g. retry or log
             print(f"OpenAI API returned an API Error: {e}")
             await self.on_error_response(f"OpenAI API returned an API Error: {e}")
             pass
+
         except openai.error.APIConnectionError as e:
             #Handle connection error here
             print(f"Failed to connect to OpenAI API: {e}")
