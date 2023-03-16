@@ -13,6 +13,7 @@ class SimpleChatBridge:
         self.uuid = uuid
         self._filename = "whisper_" + str(self.uuid) + ".wav"
         self._prompt = ""
+        self._messages = []
         self._key = config("OPENAI_KEY")
         openai.api_key = config("OPENAI_KEY")
     
@@ -22,6 +23,7 @@ class SimpleChatBridge:
 
     def add_prompt(self, prompt):
         self._prompt = prompt
+        self._messages.append({"role": "system", "content": self._prompt})
 
     def add_input(self, buffer):
         self._queue.put(bytes(buffer), block=False)
@@ -56,18 +58,28 @@ class SimpleChatBridge:
             await openai.aiosession.get().close()
             return
         
-        message = self._prompt + whisper_transcript.text
+        message = whisper_transcript.text
+        self._messages.append({"role": "user", "content": message})
         print("chatGPT message: " + message)
 
-        chat_response = await self.chat_completion(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}])
+        chat_response = await self.chat_completion(model="gpt-3.5-turbo", messages=self._messages, stream=True)
         
         if chat_response is None:
             await openai.aiosession.get().close()
             return
         
+        ass_message = ""
+
+        async for chunk in chat_response:
+            if bool(chunk.choices[0].delta) == False:
+                await self.on_response("", True)
+            if hasattr(chunk.choices[0].delta, "content"):
+                mess = chunk.choices[0].delta.content
+                ass_message += mess
+                await self.on_response(mess, False)
+        self._messages.append({"role": "assistant", "content": ass_message})
         await openai.aiosession.get().close()
-        await self.on_response(chat_response.choices[0].message.content)
-        print("message sent")
+        print("message stream sent.")
     
     @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
     async def audio_transcribe(self, **kwargs):
