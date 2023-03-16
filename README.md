@@ -1,6 +1,6 @@
-# ContinuousGPT
+# Reverbal Server
 
-ContinuousGPT generates insights for your verbal conversation as it happens, helping you close that important sales call or discussing travel plans with your friend.
+Reverbal generates insights for your verbal conversation as it happens, helping you close that important sales call or discussing travel plans with your friend.
 
 This server utilises Whisper and ChatGPT APIs to transcribe your audio and generate insights respsctively. You can adjust how ChatGPT generates insights by sending a prompt prior to starting the audio stream from your client.
 
@@ -23,7 +23,7 @@ docker-compose up -d
 
 This server works on a simple WebSocket connection that accepts different types of events.
 
-## To continuousGPT
+## To Server
 
 WebSockets `ws://localhost:80/`
 
@@ -65,13 +65,19 @@ Aggregates collected audio streams to be transcribed and then closes the connect
 }
 ```
 
-## From continuousGPT
+## From Server
 
 WebSockets `ws://localhost:80/`
-
+### Healthy response
 ```json
 {
   "text": "This is the nature of..."
+}
+```
+### Error response
+```json
+{
+  "error": "There's a problem..."
 }
 ```
 
