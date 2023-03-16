@@ -1,17 +1,25 @@
 import base64
 import json
+import uuid
 import asyncio
 import websockets
 from SimpleChatBridge import SimpleChatBridge
 
 HTTP_SERVER_PORT = 8080
 
-def create_chat_response(on_response, on_error_response):
-    bridge = SimpleChatBridge()
+def create_chat_response(on_response, on_error_response, uuid):
+    bridge = SimpleChatBridge(uuid)
     bridge._init(on_response, on_error_response)
+
+    if not isinstance(bridge.get_key(), str):
+        print("OpenAI api key unknown.")
+        raise
+
     return bridge
 
 async def transcribe(ws):
+
+    new_uuid = uuid.uuid4()
 
     async def on_chat_response(data):
         resObject = {
@@ -28,7 +36,7 @@ async def transcribe(ws):
         await ws.send(res)
 
     print("WS connection opened")
-    chatBridge = create_chat_response(on_chat_response, on_error_response)
+    chatBridge = create_chat_response(on_chat_response, on_error_response, new_uuid)
     
     async for message in ws:
         if message is None:
@@ -62,7 +70,7 @@ async def transcribe(ws):
             await chatBridge.send()
             print("Stopping...")
             break
-    
+    chatBridge.clear_audio()
     print("WS connection closed")
 
 async def main():
