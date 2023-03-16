@@ -1,3 +1,4 @@
+import os
 import openai
 import queue
 from aiohttp import ClientSession
@@ -5,9 +6,11 @@ from pydub import AudioSegment
 from decouple import config
 
 class SimpleChatBridge:
-    def __init__(self):
+    def __init__(self, uuid):
         self._queue = queue.Queue()
         self._ended = False
+        self.uuid = uuid
+        self._filename = "whisper_" + str(self.uuid) + ".wav"
         self._prompt = ""
         self._key = config("OPENAI_KEY")
         openai.api_key = config("OPENAI_KEY")
@@ -22,9 +25,9 @@ class SimpleChatBridge:
     def add_input(self, buffer):
         self._queue.put(bytes(buffer), block=False)
 
-    def clear(self):
-        with self._queue.mutex:
-            self._queue.queue.clear()
+    def clear_audio(self):
+        if os.path.exists(self._filename):
+            os.remove(self._filename)
 
     async def send(self):
         stream = self.audio_generator()
@@ -34,13 +37,12 @@ class SimpleChatBridge:
             return
         
         for content in stream:
-            new_seg = AudioSegment(content, sample_width=2, frame_rate=96000, channels=1)
+            new_seg = AudioSegment(content, sample_width=2, frame_rate=44100, channels=1)
             segment += new_seg
-
-        segment.export("whisper.wav", format="wav")
+        segment.export(self._filename, format="wav")
         print("Audio file created")
 
-        file = open("whisper.wav", "r+b")
+        file = open(self._filename, "r+b")
         openai.aiosession.set(ClientSession())
         try:
             whisper_transcript = await openai.Audio.atranscribe(model="whisper-1", file=file, language="en")
