@@ -69,14 +69,17 @@ class SimpleChatBridge:
             return
         
         ass_message = ""
+        await self.on_response("", "start")
 
         async for chunk in chat_response:
             if bool(chunk.choices[0].delta) == False:
-                await self.on_response("", True)
+                await self.on_response("", "stop")
+                
             if hasattr(chunk.choices[0].delta, "content"):
                 mess = chunk.choices[0].delta.content
                 ass_message += mess
-                await self.on_response(mess, False)
+                await self.on_response(mess, "streaming")
+
         self._messages.append({"role": "assistant", "content": ass_message})
         await openai.aiosession.get().close()
         print("message stream sent.")
