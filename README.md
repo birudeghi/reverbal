@@ -71,13 +71,18 @@ WebSockets `ws://localhost:80/`
 ### Stream response
 ```json
 {
+  "text": "",
+  "stream": "start"
+}
+------
+{
   "text": "This is the nature of...",
   "stream": "streaming"
 }
 ------
 {
   "text": "",
-  "stream": "done"
+  "stream": "stop"
 }
 ```
 ### Error response

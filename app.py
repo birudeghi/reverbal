@@ -21,17 +21,11 @@ async def transcribe(ws):
 
     new_uuid = uuid.uuid4()
 
-    async def on_chat_response(data, end):
-        if end == False:
-            resObject = {
-                "text": data,
-                "stream": "streaming"
-            }
-        else:
-            resObject = {
-                "text": data,
-                "stream": "done"
-            }
+    async def on_chat_response(data, streaming_status):
+        resObject = {
+            "text": data,
+            "stream": streaming_status
+        }
         res = json.dumps(resObject)
         await ws.send(res)
     
