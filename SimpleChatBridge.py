@@ -35,8 +35,43 @@ class SimpleChatBridge:
         if os.path.exists(self._filename):
             os.remove(self._filename)
 
+    async def send_chat(self):
+        stream = self.generator()
+        if stream is None:
+            print("empty stream")
+            return
+        
+        for content in stream:
+            new_message = {"role": "user", "content": content}
+            self._messages.append(new_message)
+        
+        openai.aiosession.set(aiohttp.ClientSession())
+
+        chat_response = await self.chat_completion(model="gpt-3.5-turbo", messages=self._messages, stream=True)
+
+        if chat_response is None:
+            await openai.aiosession.get().close()
+            return
+        
+        ass_message = ""
+        await self.on_response("", "start")
+
+        async for chunk in chat_response:
+            if bool(chunk.choices[0].delta) == False:
+                await self.on_response("", "stop")
+                
+            if hasattr(chunk.choices[0].delta, "content"):
+                mess = chunk.choices[0].delta.content
+                ass_message += mess
+                await self.on_response(mess, "streaming")
+
+        self._messages.append({"role": "assistant", "content": ass_message})
+        await openai.aiosession.get().close()
+        print("message stream sent.")
+        
+
     async def send(self):
-        stream = self.audio_generator()
+        stream = self.generator()
         segment = AudioSegment.empty()
         if stream is None:
             print("empty stream")
@@ -140,7 +175,7 @@ class SimpleChatBridge:
             await self.on_error_response(f"Failed to connect to OpenAI API: {e}")
             pass
 
-    def audio_generator(self):
+    def generator(self):
         # Use a blocking get() to ensure there's at least one chunk of
         # data, and stop iteration if the chunk is None, indicating the
         # end of the audio stream.

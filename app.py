@@ -65,6 +65,12 @@ async def transcribe(ws):
         if data["event"] == "break":
             await chatBridge.send()
 
+        if data["event"] == "text":
+            chatBridge.add_input(data["text"])
+        
+        if data["event"] == "chat":
+            await chatBridge.send_chat()
+
         if data["event"] == "stop":
             await chatBridge.send()
             print("Stopping...")
