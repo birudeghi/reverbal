@@ -28,6 +28,10 @@ class SimpleChatBridge:
     def add_input(self, buffer):
         self._queue.put(bytes(buffer), block=False)
 
+    # TODO: don't need queue / other prompt
+    def add_messages(self, messages):
+        self._messages.append(messages)
+
     def get_key(self):
         return self._key
 
@@ -35,15 +39,19 @@ class SimpleChatBridge:
         if os.path.exists(self._filename):
             os.remove(self._filename)
 
+    def clear_messages(self):
+        if self._messages:
+            self._messages = []
+
     async def send_chat(self):
-        stream = self.generator()
-        if stream is None:
-            print("empty stream")
-            return
+        # stream = self.generator()
+        # if stream is None:
+        #     print("empty stream")
+        #     return
         
-        for content in stream:
-            new_message = {"role": "user", "content": content}
-            self._messages.append(new_message)
+        # for content in stream:
+        #     new_message = {"role": "user", "content": content}
+        #     self._messages.append(new_message)
         
         openai.aiosession.set(aiohttp.ClientSession())
 
@@ -67,6 +75,7 @@ class SimpleChatBridge:
 
         self._messages.append({"role": "assistant", "content": ass_message})
         await openai.aiosession.get().close()
+        self.clear_messages()
         print("message stream sent.")
         
 

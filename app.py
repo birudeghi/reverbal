@@ -58,6 +58,10 @@ async def transcribe(ws):
             chatBridge.add_prompt(data["prompt"])
             continue
 
+        if data["event"] == "messages":
+            messages = json.loads(data["messages"])
+            chatBridge.add_messages(messages)
+
         if data["event"] == "media":
             chunk = base64.b64decode(data["media"])
             chatBridge.add_input(chunk)
