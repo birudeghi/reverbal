@@ -1,45 +1,30 @@
-import base64
 import json
 import uuid
 import asyncio
 import websockets
+from websockets.server import WebSocketServerProtocol
 from SimpleChatBridge import SimpleChatBridge
 
 HTTP_SERVER_PORT = 8080
 
 
-def create_chat_response(on_response, on_error_response, uuid):
-    bridge = SimpleChatBridge(uuid)
-    bridge._init(on_response, on_error_response)
-
-    if not isinstance(bridge.get_key(), str):
-        print("OpenAI api key unknown.")
-        raise
-
-    return bridge
-
-
-async def transcribe(ws):
-
-    new_uuid = uuid.uuid4()
-
-    async def on_chat_response(data, streaming_status):
+async def respond(ws: WebSocketServerProtocol):
+    async def on_chat_response(data: str, streaming_status: str) -> None:
         resObject = {"text": data, "stream": streaming_status}
         res = json.dumps(resObject)
         await ws.send(res)
 
-    async def on_error_response(text):
+    async def on_error_response(text: str) -> None:
         resObject = {"error": text}
         res = json.dumps(resObject)
         await ws.send(res)
 
+    new_uuid = uuid.uuid4()
+
     print("WS connection opened")
-    chatBridge = create_chat_response(on_chat_response, on_error_response, new_uuid)
+    chatBridge = SimpleChatBridge(new_uuid, on_chat_response, on_error_response)
 
     async for message in ws:
-        if message is None:
-            chatBridge.add_input(None)
-
         data = json.loads(message)
 
         if data.get("event") is None:
@@ -50,33 +35,16 @@ async def transcribe(ws):
             await ws.send(msg)
             continue
 
-        if data["event"] == "prompt":
-            print(f"Media WS: Received event '{data['event']}': {message}")
-            chatBridge.add_prompt(data["prompt"])
-            continue
-
-        if data["event"] == "media":
-            chunk = base64.b64decode(data["media"])
-            chatBridge.add_input(chunk)
-
-        if data["event"] == "break":
-            await chatBridge.send()
-
         if data["event"] == "text":
             chatBridge.generate_messages(data["text"])
             await chatBridge.send_chat()
 
-        if data["event"] == "stop":
-            await chatBridge.send()
-            print("Stopping...")
-            break
-    chatBridge.clear_audio()
     print("WS connection closed")
 
 
-async def main():
-    async with websockets.serve(transcribe, None, HTTP_SERVER_PORT):
-        print("server listening on: http://localhost:" + str(HTTP_SERVER_PORT))
+async def main(port: int = HTTP_SERVER_PORT) -> None:
+    async with websockets.serve(respond, None, port):
+        print(f"server listening on: http://localhost:{port}")
         await asyncio.Future()
 
 
